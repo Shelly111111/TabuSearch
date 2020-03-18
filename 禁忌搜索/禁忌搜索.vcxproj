@@ -145,9 +145,6 @@
     <Text Include="Node.txt" />
     <Text Include="Vex.txt" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\Python\配送线路优化-deap\配送线路优化-deap\graph.json" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

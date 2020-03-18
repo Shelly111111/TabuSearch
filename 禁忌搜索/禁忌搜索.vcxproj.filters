@@ -24,7 +24,4 @@
     <Text Include="Edges.txt" />
     <Text Include="Vex.txt" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="..\..\..\Python\配送线路优化-deap\配送线路优化-deap\graph.json" />
-  </ItemGroup>
 </Project>
