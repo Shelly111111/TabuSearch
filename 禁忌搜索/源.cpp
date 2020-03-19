@@ -14,10 +14,25 @@
 using namespace std;
 #define INF 0x3ffffff
 #define Customer_Number 200   //算例中除仓库以外的最大顾客节点个数
-#define Capacity 30   //车辆的容量
-#define Itinerant_Mileage 400   //最大巡回里程
-#define Iter_Max 400   //搜索最大迭代次数
+#define Itinerant_Mileage 400   //最大巡回里程，单位km
 #define Tabu_tenure 20   //禁忌时长
+
+struct Vehicle_Type
+{
+    double MaxLoad;
+    double MaxMileage;
+    int Num;
+};
+
+struct Param
+{
+    int Iter_Epoch;
+    int Vehicle_type;
+    vector<Vehicle_Type> vehicle;
+    double ServiceTime;
+    double Max_ServiceTime;
+    double Speed;
+}param;
 
 struct Customer_Type
 {
@@ -33,6 +48,7 @@ struct Route_Type
     double Load;   //单条路径装载量
     double SubT;   //单条路径违反各节点时间窗约束时长总和
     double Dis;   //单条路径总长度
+    int VT;      //哪种车辆配送
     vector<Customer_Type> V;   //单条路径上顾客节点序列
 } Route[Customer_Number + 10], Route_Ans[Customer_Number + 10];   //车辆路径及搜索到最优的车辆路径
 
@@ -43,6 +59,49 @@ double Ans;
 //double Alpha = 1, Beta = 1, Sita = 0.5;
 double Graph[Customer_Number + 10][Customer_Number + 10];
 int Customer_num;
+//************************************************************
+//初始化参数
+/*
+train_opt={
+    'epoch' : 4,#迭代次数
+    'data_path' : './graph.json',
+    'log_file' : './log',
+    'checkpoint' : False,#检查点
+    'max' : 9999999,
+    'file_path' : './checkpoint.json',
+    'dataDict' : {
+        'Vehicle_type_num' : 2,
+        0 : {
+            'MaxLoad' : 30.0,#车辆最大负载
+            'MaxMileage' : 400,#最大巡回里程
+            'Num' : 12
+            },
+        1 : {
+            'MaxLoad' : 12.0,
+            'MaxMileage' : 400,#最大巡回里程
+            'Num' : 10
+            },
+        'ServiceTime' : 5,#服务时间，单位分钟
+        'MaxServiceTime' : 480,#单位分钟
+        'speed' : 60#单位千米/小时
+    }
+}
+*/
+void Init_Param()
+{
+    param.Iter_Epoch = 400;
+    param.Max_ServiceTime = 8.0;
+    param.ServiceTime = 0.08;
+    param.Speed = 60.0;
+    param.Vehicle_type = 2;
+    param.vehicle.resize(param.Vehicle_type);
+    param.vehicle[0].MaxLoad = 30.0;
+    param.vehicle[0].MaxMileage = 400.0;
+    param.vehicle[0].Num = 12;
+    param.vehicle[1].MaxLoad = 12.0;
+    param.vehicle[1].MaxMileage = 400.0;
+    param.vehicle[1].Num = 10;
+}
 
 //************************************************************
 //计算图上各节点间的距离
@@ -63,8 +122,12 @@ double Calculation(Route_Type R[], int Cus, int NewR)
     double D = 0;
     //计算单条路径超出容量约束的总量
     for (int i = 1; i <= Vehicle_Number; ++i)
-        if (R[i].V.size() > 2 && R[i].Load > Capacity)
+    {
+        if (R[i].VT == param.Vehicle_type)
+            break;
+        if (R[i].V.size() > 2 && R[i].Load > param.vehicle[R[i].VT].MaxLoad)
             return INF;
+    }
             //Q = Q + R[i].Load - Capacity;
     //计算单条路径上各个节点超出时间窗约束的总量（仅更新进行移除和插入节点操作的两条路径）
     double ArriveTime = 0;
@@ -111,7 +174,9 @@ bool Check(Route_Type R[])
     //检查是否满足容量约束、时间窗约束
     for (int i = 1; i <= Vehicle_Number; ++i)
     {
-        if (R[i].V.size() > 2 && (R[i].Load > Capacity || R[i].Dis > Itinerant_Mileage))
+        if (R[i].VT == param.Vehicle_type)
+            break;
+        if (R[i].V.size() > 2 && (R[i].Load > param.vehicle[R[i].VT].MaxLoad || R[i].Dis > Itinerant_Mileage))
             return false;
             //Q += R[i].Load - Capacity;
         //T += R[i].SubT;
@@ -247,6 +312,7 @@ void ReadIn_and_Initialization()
         Dijkstra(&Graph[0], i);
     //初始化每条路径，默认路径收尾为仓库，且首仓库最早最晚时间均为原仓库最早时间，尾仓库则均为原仓库最晚时间
     Customer[1].R = -1;
+    int Current_VT = 0, temp = 1;
     for (int i = 1; i <= Vehicle_Number; ++i)
     {
         if (!Route[i].V.empty())
@@ -257,6 +323,12 @@ void ReadIn_and_Initialization()
         Route[i].V[1].Begin = Route[i].V[1].End;
         Route[i].Load = 0.0;
         Route[i].Dis = 0.0;
+        if (Current_VT < param.Vehicle_type && i == temp + param.vehicle[Current_VT].Num)
+        {
+            temp = i;
+            Current_VT++;
+        }
+        Route[i].VT = Current_VT;
     }
     Ans = INF;
     /*
@@ -268,7 +340,7 @@ void ReadIn_and_Initialization()
 
 //************************************************************
 //构造初始路径
-void Construction()
+bool Construction()
 {
     int Customer_Set[Customer_Number + 10];
     for (int i = 1; i <= Customer_num + 1; ++i)
@@ -289,8 +361,10 @@ void Construction()
         Customer_Set[K] = Customer_Set[Sizeof_Customer_Set];
         Sizeof_Customer_Set--;*/
         //将当前服务过的节点赋值为最末节点值,数组容量减1
-        if (Route[Current_Route].Load + Customer[C].Demand > Capacity)
+        if (Route[Current_Route].VT < param.Vehicle_type && Route[Current_Route].Load + Customer[C].Demand > param.vehicle[Route[Current_Route].VT].MaxLoad)
             Current_Route++;
+        else if (Route[Current_Route].VT == param.Vehicle_type)
+            return false;
         for (int i = 1; i < Route[Current_Route].V.size(); i++)
         {
 
@@ -338,6 +412,7 @@ void Construction()
     for (int i = 1; i <= Vehicle_Number; ++i)
         D += Route[i].Dis;
     Ans = D;
+    return true;
 }
 
 //************************************************************
@@ -348,13 +423,14 @@ void Tabu_Search()
     //在该操作下形成的邻域中选取使目标函数最小的非禁忌解或者因满足藐视法则而被解禁的解
     double Temp1;
     double Temp2;
+    //初始化禁忌表
     for (int i = 2; i <= Customer_num + 1; ++i)
     {
         for (int j = 1; j <= Vehicle_Number; ++j)
             Tabu[i][j] = 0;
         TabuCreate[i] = 0;
     }
-    for (int Iteration = 0; Iteration < Iter_Max; Iteration++)
+    for (int Iteration = 0; Iteration < param.Iter_Epoch; Iteration++)
     {        
         int BestCustomer = 0, BestRoute = 0, BestPoint = 0, P = 0;
         double BestV = INF;
@@ -374,12 +450,15 @@ void Tabu_Search()
             //从节点原路径中去除节点
             Route[Customer[i].R].V.erase(Route[Customer[i].R].V.begin() + P);
             for (int j = 1; j <= Vehicle_Number; ++j)
+            {
+                if (Route[j].VT == param.Vehicle_type)
+                    break;
                 //禁忌插入操作，后者为禁止使用新的车辆
                 if (((Route[j].V.size() > 2 && Tabu[i][j] <= Iteration) || (Route[j].V.size() == 2 && TabuCreate[i] <= Iteration)) && Customer[i].R != j)
                     for (int l = 1; l < Route[j].V.size(); ++l)
                     {
                         //判断加上结点后是否会超出限制
-                        if (Route[j].Load + Customer[i].Demand > Capacity)
+                        if (Route[j].Load + Customer[i].Demand > param.vehicle[Route[j].VT].MaxMileage)
                             break;
                         double Pre_Dis = Route[j].Dis - Graph[Route[j].V[l - 1].Number][Route[j].V[l].Number]
                             + Graph[Route[j].V[l - 1].Number][Customer[i].Number] + Graph[Route[j].V[l].Number][Customer[i].Number];
@@ -407,12 +486,14 @@ void Tabu_Search()
                         Route[j].Dis = Route[j].Dis + Graph[Route[j].V[l - 1].Number][Route[j].V[l].Number]
                             - Graph[Route[j].V[l - 1].Number][Customer[i].Number] - Graph[Route[j].V[l].Number][Customer[i].Number];
                     }
+            }
             //节点原路径复原
             Route[Customer[i].R].V.insert(Route[Customer[i].R].V.begin() + P, Customer[i]);
             Route[Customer[i].R].Load += Customer[i].Demand;
             Route[Customer[i].R].Dis = Route[Customer[i].R].Dis + Graph[Route[Customer[i].R].V[P - 1].Number][Route[Customer[i].R].V[P].Number]
                 + Graph[Route[Customer[i].R].V[P].Number][Route[Customer[i].R].V[P + 1].Number] - Graph[Route[Customer[i].R].V[P - 1].Number][Route[Customer[i].R].V[P + 1].Number];
         }
+        //将BestCustomer禁忌在该节点所在的路径中，直到超过禁忌时长才能重新插入到该路径里
         if (Route[BestRoute].V.size() == 2)
             TabuCreate[BestCustomer] = Iteration + 2 * Tabu_tenure + rand() % 10;
         Tabu[BestCustomer][Customer[BestCustomer].R] = Iteration + Tabu_tenure + rand() % 10;
@@ -475,9 +556,22 @@ int main()
     clock_t Start, Finish;
     Start = clock();
     srand((unsigned)time(NULL));
+    Init_Param();
+    cout << "InitParam is Ok!" << endl;
     ReadIn_and_Initialization();
     cout << "Initialization is Ok!" << endl;
-    Construction();
+    bool flag = false;
+    int trystep = 0;
+    while (!flag)
+    {
+        if (trystep >= 5)
+        {
+            cerr << "Some parameters currently entered may be too small for effective operation, please check the corresponding parameter settings\n";
+            exit(-1);
+        }
+        flag = Construction();
+        trystep++;
+    } 
     cout << "Initial path construction is Ok!" << endl;
     Tabu_Search();
     cout << "Tabu Search is Ok!" << endl;
@@ -489,23 +583,25 @@ int main()
 //************************************************************
 
 /*
-The Minimum Total Distance = 2531
+The Minimum Total Distance = 2596
 Concrete Schedule of Each Route as Following :
-No.1 : 0 -> 21 -> 84 -> 150 -> 92 -> 130 -> 183 -> 198 -> 16 -> 65 -> 50 -> 79 -> 95 -> 158 -> 194 -> 127 -> 0
-No.2 : 0 -> 180 -> 167 -> 4 -> 118 -> 185 -> 46 -> 1 -> 149 -> 140 -> 156 -> 89 -> 80 -> 0
-No.3 : 0 -> 170 -> 75 -> 86 -> 66 -> 121 -> 152 -> 20 -> 0
-No.4 : 0 -> 168 -> 64 -> 72 -> 106 -> 102 -> 35 -> 157 -> 184 -> 148 -> 175 -> 11 -> 117 -> 28 -> 51 -> 190 -> 0
-No.5 : 0 -> 54 -> 109 -> 98 -> 103 -> 104 -> 57 -> 186 -> 62 -> 135 -> 59 -> 23 -> 53 -> 120 -> 126 -> 159 -> 110 -> 164 -> 142 -> 0
-No.6 : 0 -> 71 -> 85 -> 174 -> 125 -> 0
-No.7 : 0 -> 69 -> 163 -> 124 -> 3 -> 177 -> 8 -> 67 -> 182 -> 29 -> 10 -> 27 -> 179 -> 13 -> 187 -> 63 -> 0
-No.8 : 0 -> 2 -> 37 -> 108 -> 139 -> 30 -> 14 -> 12 -> 146 -> 189 -> 188 -> 36 -> 32 -> 115 -> 154 -> 41 -> 77 -> 0
-No.9 : 0 -> 144 -> 105 -> 153 -> 112 -> 165 -> 47 -> 52 -> 151 -> 131 -> 82 -> 143 -> 100 -> 48 -> 195 -> 44 -> 162 -> 0
-No.10 : 0 -> 9 -> 199 -> 192 -> 43 -> 74 -> 166 -> 191 -> 61 -> 197 -> 60 -> 73 -> 0
-No.11 : 0 -> 171 -> 45 -> 78 -> 68 -> 122 -> 176 -> 19 -> 193 -> 138 -> 141 -> 0
-No.12 : 0 -> 128 -> 58 -> 196 -> 5 -> 39 -> 70 -> 6 -> 96 -> 42 -> 33 -> 25 -> 111 -> 88 -> 31 -> 83 -> 24 -> 0
-No.13 : 0 -> 173 -> 55 -> 94 -> 38 -> 155 -> 99 -> 97 -> 134 -> 169 -> 137 -> 161 -> 133 -> 56 -> 101 -> 90 -> 116 -> 0
-No.14 : 0 -> 136 -> 15 -> 34 -> 132 -> 172 -> 22 -> 7 -> 145 -> 113 -> 181 -> 114 -> 123 -> 81 -> 0
-No.15 : 0 -> 119 -> 26 -> 160 -> 147 -> 129 -> 49 -> 93 -> 18 -> 87 -> 91 -> 76 -> 178 -> 17 -> 40 -> 107 -> 0
-Check_Ans = 2531
-Total Running Time = 264.764
+No.1 : 0 -> 37 -> 119 -> 108 -> 160 -> 183 -> 198 -> 125 -> 163 -> 105 -> 4 -> 185 -> 118 -> 44 -> 0
+No.2 : 0 -> 140 -> 92 -> 130 -> 150 -> 138 -> 141 -> 170 -> 162 -> 20 -> 121 -> 79 -> 131 -> 149 -> 0
+No.3 : 0 -> 74 -> 135 -> 35 -> 102 -> 19 -> 25 -> 156 -> 28 -> 117 -> 6 -> 10 -> 0
+No.4 : 0 -> 89 -> 111 -> 88 -> 61 -> 172 -> 7 -> 22 -> 176 -> 152 -> 99 -> 97 -> 51 -> 190 -> 13 -> 87 -> 0
+No.5 : 0 -> 49 -> 93 -> 18 -> 164 -> 182 -> 81 -> 123 -> 171 -> 57 -> 104 -> 194 -> 0
+No.6 : 0 -> 71 -> 145 -> 95 -> 197 -> 16 -> 65 -> 36 -> 32 -> 84 -> 167 -> 180 -> 166 -> 56 -> 133 -> 101 -> 90 -> 116 -> 0
+No.7 : 0 -> 31 -> 83 -> 86 -> 66 -> 188 -> 103 -> 98 -> 174 -> 15 -> 34 -> 132 -> 82 -> 85 -> 0
+No.8 : 0 -> 179 -> 109 -> 55 -> 165 -> 94 -> 158 -> 70 -> 59 -> 62 -> 186 -> 187 -> 199 -> 192 -> 9 -> 0
+No.9 : 0 -> 144 -> 129 -> 143 -> 45 -> 72 -> 106 -> 136 -> 137 -> 191 -> 29 -> 75 -> 114 -> 0
+No.10 : 0 -> 69 -> 27 -> 39 -> 52 -> 151 -> 38 -> 155 -> 147 -> 26 -> 139 -> 50 -> 0
+No.11 : 0 -> 142 -> 67 -> 8 -> 177 -> 120 -> 60 -> 73 -> 43 -> 100 -> 122 -> 68 -> 78 -> 0
+No.12 : 0 -> 168 -> 64 -> 134 -> 107 -> 17 -> 24 -> 193 -> 153 -> 195 -> 146 -> 48 -> 189 -> 161 -> 0
+No.13 : 0 -> 77 -> 41 -> 154 -> 115 -> 124 -> 3 -> 40 -> 46 -> 1 -> 181 -> 113 -> 96 -> 33 -> 42 -> 2 -> 0
+No.14 : 0 -> 21 -> 23 -> 30 -> 53 -> 14 -> 12 -> 58 -> 196 -> 5 -> 0
+No.15 : 0 -> 54 -> 110 -> 159 -> 126 -> 157 -> 184 -> 148 -> 128 -> 0
+No.16 : 0 -> 63 -> 91 -> 76 -> 178 -> 47 -> 173 -> 0
+No.17 : 0 -> 80 -> 112 -> 11 -> 175 -> 169 -> 127 -> 0
+Check_Ans = 2596
+Total Running Time = 204.022
 */
