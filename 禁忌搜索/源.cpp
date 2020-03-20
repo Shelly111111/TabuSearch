@@ -125,6 +125,7 @@ void Copy_Route()
         Route_Ans[i].Load = Route[i].Load;
         Route_Ans[i].Dis = Route[i].Dis;
         Route_Ans[i].ServT = Route[i].ServT;
+        Route_Ans[i].VT = Route[i].VT;
         Route_Ans[i].V.clear();
         for (int j = 0; j < Route[i].V.size(); ++j)
             Route_Ans[i].V.push_back(Route[i].V[j]);
@@ -438,42 +439,38 @@ int main()
 
 //************************************************************
 /*
-The Minimum Total Distance = 2244
+The Minimum Total Distance = 2214
 Concrete Schedule of Each Route as Following :
-No.1 : Use VehicleType 0,Load 29.1,Distance 129
-0 -> 63 -> 43 -> 182 -> 67 -> 8 -> 16 -> 188 -> 103 -> 98 -> 97 -> 134 -> 64 -> 0
-No.2 : Use VehicleType 0,Load 28.1,Distance 171
-0 -> 168 -> 37 -> 119 -> 33 -> 42 -> 159 -> 126 -> 157 -> 120 -> 197 -> 61 -> 191 -> 0
-No.3 : Use VehicleType 0,Load 21.5,Distance 119
-0 -> 73 -> 156 -> 28 -> 198 -> 183 -> 147 -> 160 -> 129 -> 93 -> 18 -> 0
-No.4 : Use VehicleType 0,Load 30,Distance 164
-0 -> 9 -> 199 -> 192 -> 121 -> 15 -> 106 -> 124 -> 177 -> 66 -> 86 -> 83 -> 31 -> 24 -> 0
-No.5 : Use VehicleType 0,Load 25.2,Distance 216
-0 -> 122 -> 68 -> 78 -> 35 -> 88 -> 133 -> 56 -> 101 -> 172 -> 95 -> 131 -> 0
-No.6 : Use VehicleType 0,Load 24.8,Distance 138
-0 -> 58 -> 196 -> 5 -> 87 -> 109 -> 54 -> 13 -> 179 -> 89 -> 25 -> 0
-No.7 : Use VehicleType 0,Load 28.9,Distance 143
-0 -> 21 -> 127 -> 169 -> 161 -> 189 -> 48 -> 12 -> 14 -> 167 -> 84 -> 92 -> 130 -> 140 -> 0
-No.8 : Use VehicleType 0,Load 29.4,Distance 141
-0 -> 173 -> 55 -> 165 -> 47 -> 151 -> 155 -> 38 -> 91 -> 107 -> 170 -> 75 -> 123 -> 81 -> 0
-No.9 : Use VehicleType 0,Load 29.4,Distance 183
-0 -> 116 -> 90 -> 144 -> 114 -> 141 -> 186 -> 138 -> 36 -> 32 -> 181 -> 113 -> 174 -> 125 -> 51 -> 190 -> 0
-No.10 : Use VehicleType 0,Load 28.7,Distance 112
-0 -> 74 -> 10 -> 6 -> 143 -> 45 -> 79 -> 132 -> 34 -> 82 -> 145 -> 2 -> 85 -> 71 -> 0
-No.11 : Use VehicleType 0,Load 24.5,Distance 122
-0 -> 142 -> 50 -> 108 -> 139 -> 23 -> 59 -> 62 -> 70 -> 39 -> 27 -> 0
-No.12 : Use VehicleType 0,Load 29.7,Distance 160
-0 -> 153 -> 193 -> 102 -> 136 -> 20 -> 162 -> 44 -> 184 -> 148 -> 65 -> 175 -> 11 -> 112 -> 0
-No.13 : Use VehicleType 0,Load 9.3,Distance 73
-0 -> 154 -> 41 -> 80 -> 0
-No.14 : Use VehicleType 0,Load 10.3,Distance 101
-0 -> 158 -> 149 -> 1 -> 46 -> 100 -> 0
-No.15 : Use VehicleType 0,Load 12,Distance 104
-0 -> 171 -> 57 -> 19 -> 176 -> 152 -> 0
-No.16 : Use VehicleType 0,Load 7.9,Distance 87
-0 -> 166 -> 7 -> 22 -> 0
-No.17 : Use VehicleType 0,Load 11.7,Distance 81
-0 -> 128 -> 4 -> 118 -> 185 -> 163 -> 69 -> 0
-Check_Ans = 2244
-Total Running Time = 520.234
+No.1 : Use VehicleType 0, Load 30, Distance 152, ServeTime 3.57333
+0 -> 81 -> 123 -> 114 -> 170 -> 141 -> 75 -> 86 -> 83 -> 163 -> 125 -> 174 -> 169 -> 21 -> 0
+No.2 : Use VehicleType 0, Load 29.5, Distance 135, ServeTime 3.37
+0 -> 89 -> 11 -> 175 -> 25 -> 19 -> 35 -> 126 -> 159 -> 42 -> 33 -> 67 -> 182 -> 142 -> 168 -> 0
+No.3 : Use VehicleType 0, Load 28.2, Distance 157, ServeTime 3.57667
+0 -> 119 -> 108 -> 160 -> 147 -> 198 -> 28 -> 153 -> 58 -> 196 -> 156 -> 51 -> 190 -> 0
+No.4 : Use VehicleType 0, Load 28.8, Distance 198, ServeTime 4.34
+0 -> 24 -> 31 -> 66 -> 177 -> 107 -> 140 -> 149 -> 197 -> 61 -> 43 -> 13 -> 186 -> 57 -> 0
+No.5 : Use VehicleType 0, Load 29.9, Distance 168, ServeTime 3.76
+0 -> 69 -> 93 -> 18 -> 82 -> 130 -> 92 -> 138 -> 193 -> 102 -> 192 -> 199 -> 9 -> 0
+No.6 : Use VehicleType 0, Load 29.6, Distance 205, ServeTime 4.45667
+0 -> 116 -> 171 -> 45 -> 143 -> 189 -> 48 -> 161 -> 145 -> 106 -> 124 -> 121 -> 109 -> 173 -> 0
+No.7 : Use VehicleType 0, Load 29.7, Distance 148, ServeTime 3.50667
+0 -> 87 -> 179 -> 54 -> 79 -> 131 -> 95 -> 172 -> 101 -> 133 -> 56 -> 88 -> 191 -> 128 -> 0
+No.8 : Use VehicleType 0, Load 28.8, Distance 133, ServeTime 3.17667
+0 -> 80 -> 112 -> 165 -> 55 -> 47 -> 151 -> 183 -> 154 -> 41 -> 155 -> 38 -> 91 -> 0
+No.9 : Use VehicleType 0, Load 28.1, Distance 160, ServeTime 3.62667
+0 -> 74 -> 167 -> 84 -> 23 -> 14 -> 12 -> 4 -> 118 -> 185 -> 27 -> 6 -> 10 -> 0
+No.10 : Use VehicleType 0, Load 29.1, Distance 178, ServeTime 3.92667
+0 -> 166 -> 7 -> 22 -> 176 -> 98 -> 103 -> 188 -> 8 -> 46 -> 1 -> 181 -> 113 -> 0
+No.11 : Use VehicleType 0, Load 28.2, Distance 162, ServeTime 3.82
+0 -> 73 -> 120 -> 157 -> 184 -> 148 -> 16 -> 65 -> 36 -> 32 -> 50 -> 139 -> 129 -> 144 -> 90 -> 0
+No.12 : Use VehicleType 0, Load 29.7, Distance 145, ServeTime 3.45667
+0 -> 71 -> 132 -> 34 -> 15 -> 136 -> 152 -> 134 -> 97 -> 62 -> 59 -> 70 -> 158 -> 127 -> 0
+No.13 : Use VehicleType 1, Load 11.7, Distance 89, ServeTime 1.96333
+0 -> 64 -> 5 -> 39 -> 37 -> 2 -> 85 -> 0
+No.14 : Use VehicleType 1, Load 8.4, Distance 62, ServeTime 1.35333
+0 -> 63 -> 44 -> 162 -> 20 -> 0
+No.15 : Use VehicleType 1, Load 10.8, Distance 122, ServeTime 2.35333
+0 -> 100 -> 68 -> 122 -> 78 -> 0
+Check_Ans = 2214
+Total Running Time = 119.535
 */
