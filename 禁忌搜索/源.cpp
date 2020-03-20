@@ -45,7 +45,7 @@ struct Customer_Type
 struct Route_Type
 {
     double Load;   //单条路径装载量
-    double SubT;   //单条路径服务时长总和
+    double ServT;   //单条路径服务时长总和
     double Dis;   //单条路径总长度
     int VT;      //哪种车辆配送
     vector<Customer_Type> V;   //单条路径上顾客节点序列
@@ -79,7 +79,7 @@ void Init_Param()
 }
 
 //************************************************************
-//计算图上各节点间的距离
+//计算图上各节点间的距离，当前算法无需该函数
 double Distance(Customer_Type C1, Customer_Type C2)
 {
     return sqrt((C1.X - C2.X) * (C1.X - C2.X) + (C1.Y - C2.Y) * (C1.Y - C2.Y));
@@ -90,21 +90,14 @@ double Distance(Customer_Type C1, Customer_Type C2)
 double Calculation(Route_Type R[], int Cus, int NewR)
 {
     double D = 0;
-    //计算单条路径超出容量约束的总量
+    //若每条路径都符合约束条件，则计算总里程
     for (int i = 1; i <= Vehicle_Number; ++i)
-    {
-        if (R[i].VT == param.Vehicle_type)
-            break;
-        if (R[i].V.size() > 2 && R[i].Load > param.vehicle[R[i].VT].MaxLoad)
-            return INF;
-    }
-    for (int i = 1; i <= Vehicle_Number; ++i)
-    {
-        if (R[i].Dis <= param.vehicle[R[i].VT].MaxMileage)
+        if (R[i].V.size() > 2)
+        {
+            if(R[i].Load > param.vehicle[R[i].VT].MaxLoad || R[i].Dis > param.vehicle[R[i].VT].MaxMileage || R[i].ServT > param.Max_ServiceTime)
+                return INF;
             D += R[i].Dis;
-        else
-            return INF;
-    }
+        }
     return D;
 }
 
@@ -131,6 +124,7 @@ void Copy_Route()
     {
         Route_Ans[i].Load = Route[i].Load;
         Route_Ans[i].Dis = Route[i].Dis;
+        Route_Ans[i].ServT = Route[i].ServT;
         Route_Ans[i].V.clear();
         for (int j = 0; j < Route[i].V.size(); ++j)
             Route_Ans[i].V.push_back(Route[i].V[j]);
@@ -150,8 +144,8 @@ void Output(Route_Type R[])
         if (R[i].V.size() > 2)
         {
             M++;
-            cout << "No." << M << " : " << "Use VehicleType " << R[i].VT << ",Load " << R[i].Load << ",Distance " 
-                << R[i].Dis << endl;
+            cout << "No." << M << " : " << "Use VehicleType " << R[i].VT << ", Load " << R[i].Load << ", Distance "
+                << R[i].Dis << ", ServeTime " << R[i].ServT << endl;
             for (int j = 0; j < R[i].V.size() - 1; ++j)
                 cout << R[i].V[j].Number - 1 << " -> ";
             cout << R[i].V[R[i].V.size() - 1].Number - 1 << endl;
@@ -274,14 +268,15 @@ void Construction()
             Current_Route++;
         for (int i = 1; i < Route[Current_Route].V.size(); i++)
         {
-
             double Pre_Dis = Route[Current_Route].Dis - Graph[Route[Current_Route].V[i - 1].Number][Route[Current_Route].V[i].Number] +
                 Graph[Route[Current_Route].V[i - 1].Number][Customer[C].Number] +
                 Graph[Route[Current_Route].V[i].Number][Customer[C].Number];
-            if (Pre_Dis  <= param.vehicle[Route[Current_Route].VT].MaxMileage)
+            double ServTime = Pre_Dis / param.Speed + (Route[Current_Route].V.size() - 1) * param.ServiceTime;
+            if (Pre_Dis <= param.vehicle[Route[Current_Route].VT].MaxMileage && ServTime <= param.Max_ServiceTime)
             {
                 Route[Current_Route].Load += Customer[C].Demand;
                 Route[Current_Route].Dis = Pre_Dis;
+                Route[Current_Route].ServT = ServTime;
                 Customer[C].R = Current_Route;
                 Route[Current_Route].V.insert(Route[Current_Route].V.begin() + i, Customer[C]);
                 break;
@@ -292,7 +287,9 @@ void Construction()
             Current_Route++;
             Route[Current_Route].Load += Customer[C].Demand;
             double Pre_Dis = Graph[Route[Current_Route].V[0].Number][Customer[C].Number] + Graph[Route[Current_Route].V[1].Number][Customer[C].Number];
+            double ServTime = Pre_Dis / param.Speed + (Route[Current_Route].V.size() - 1) * param.ServiceTime;
             Route[Current_Route].Dis = Pre_Dis;
+            Route[Current_Route].ServT = ServTime;
             Route[Current_Route].V.insert(Route[Current_Route].V.begin() + 1, Customer[C]);
             Customer[C].R = Current_Route;
         }
@@ -308,8 +305,6 @@ void Construction()
 //禁忌搜索
 void Tabu_Search()
 {
-    double Temp1;
-    double Temp2;
     //初始化禁忌表
     for (int i = 2; i <= Customer_num + 1; ++i)
     {
@@ -330,11 +325,13 @@ void Tabu_Search()
                     P = j;
                     break;
                 }
+            double Temp1 = Route[Customer[i].R].ServT;
             //从节点原路径中去除该节点的需求
             Route[Customer[i].R].Load -= Customer[i].Demand;
             //从节点原路径中去除该节点所组成的路径并重组
             Route[Customer[i].R].Dis = Route[Customer[i].R].Dis - Graph[Route[Customer[i].R].V[P - 1].Number][Route[Customer[i].R].V[P].Number]
                 - Graph[Route[Customer[i].R].V[P].Number][Route[Customer[i].R].V[P + 1].Number] + Graph[Route[Customer[i].R].V[P - 1].Number][Route[Customer[i].R].V[P + 1].Number];
+            Route[Customer[i].R].ServT = Route[Customer[i].R].Dis / param.Speed + (Route[Customer[i].R].V.size() - 3) * param.ServiceTime;
             //从节点原路径中去除节点
             Route[Customer[i].R].V.erase(Route[Customer[i].R].V.begin() + P);
             for (int j = 1; j <= Vehicle_Number; ++j)
@@ -346,20 +343,21 @@ void Tabu_Search()
                     for (int l = 1; l < Route[j].V.size(); ++l)
                     {
                         //判断加上结点后是否会超出限制
-                        if (Route[j].Load + Customer[i].Demand > param.vehicle[Route[j].VT].MaxMileage)
+                        if (Route[j].Load + Customer[i].Demand > param.vehicle[Route[j].VT].MaxLoad)
                             break;
                         double Pre_Dis = Route[j].Dis - Graph[Route[j].V[l - 1].Number][Route[j].V[l].Number]
                             + Graph[Route[j].V[l - 1].Number][Customer[i].Number] + Graph[Route[j].V[l].Number][Customer[i].Number];
-                        if (Pre_Dis > param.vehicle[Route[j].VT].MaxMileage)
+                        double ServTime = Pre_Dis / param.Speed + (Route[j].V.size() - 1) * param.ServiceTime;
+                        if (Pre_Dis > param.vehicle[Route[j].VT].MaxMileage || ServTime > param.Max_ServiceTime)
                             continue;
                         //在节点新路径中加上该节点的需求
                         Route[j].Load += Customer[i].Demand;
                         //在节点新路径中加上该节点插入后所组成的路径并断开原路径
                         Route[j].Dis = Pre_Dis;
+                        double Temp2 = Route[j].ServT;
+                        Route[j].ServT = ServTime;
                         //在节点新路径中插入节点
                         Route[j].V.insert(Route[j].V.begin() + l, Customer[i]);
-                        Temp1 = Route[Customer[i].R].SubT;
-                        Temp2 = Route[j].SubT;
                         double TempV = Calculation(Route, i, j);
                         if (TempV < BestV)
                         {
@@ -367,17 +365,17 @@ void Tabu_Search()
                             BestCustomer = i, BestRoute = j, BestPoint = l;
                         }
                         //节点新路径复原
-                        Route[Customer[i].R].SubT = Temp1;
-                        Route[j].SubT = Temp2;
                         Route[j].V.erase(Route[j].V.begin() + l);
                         Route[j].Load -= Customer[i].Demand;
                         Route[j].Dis = Route[j].Dis + Graph[Route[j].V[l - 1].Number][Route[j].V[l].Number]
                             - Graph[Route[j].V[l - 1].Number][Customer[i].Number] - Graph[Route[j].V[l].Number][Customer[i].Number];
+                        Route[j].ServT = Temp2;
                     }
             }
             //节点原路径复原
             Route[Customer[i].R].V.insert(Route[Customer[i].R].V.begin() + P, Customer[i]);
             Route[Customer[i].R].Load += Customer[i].Demand;
+            Route[Customer[i].R].ServT = Temp1;
             Route[Customer[i].R].Dis = Route[Customer[i].R].Dis + Graph[Route[Customer[i].R].V[P - 1].Number][Route[Customer[i].R].V[P].Number]
                 + Graph[Route[Customer[i].R].V[P].Number][Route[Customer[i].R].V[P + 1].Number] - Graph[Route[Customer[i].R].V[P - 1].Number][Route[Customer[i].R].V[P + 1].Number];
         }
@@ -397,11 +395,13 @@ void Tabu_Search()
         Route[Customer[BestCustomer].R].Load -= Customer[BestCustomer].Demand;
         Route[Customer[BestCustomer].R].Dis = Route[Customer[BestCustomer].R].Dis - Graph[Route[Customer[BestCustomer].R].V[P - 1].Number][Route[Customer[BestCustomer].R].V[P].Number]
             - Graph[Route[Customer[BestCustomer].R].V[P].Number][Route[Customer[BestCustomer].R].V[P + 1].Number] + Graph[Route[Customer[BestCustomer].R].V[P - 1].Number][Route[Customer[BestCustomer].R].V[P + 1].Number];
+        Route[Customer[BestCustomer].R].ServT = Route[Customer[BestCustomer].R].Dis / param.Speed + (Route[Customer[BestCustomer].R].V.size() - 3) * param.ServiceTime;
         Route[Customer[BestCustomer].R].V.erase(Route[Customer[BestCustomer].R].V.begin() + P);
         //在新路径中插入该结点
         Route[BestRoute].Dis = Route[BestRoute].Dis - Graph[Route[BestRoute].V[BestPoint - 1].Number][Route[BestRoute].V[BestPoint].Number]
             + Graph[Route[BestRoute].V[BestPoint - 1].Number][Customer[BestCustomer].Number] + Graph[Route[BestRoute].V[BestPoint].Number][Customer[BestCustomer].Number];
         Route[BestRoute].Load += Customer[BestCustomer].Demand;
+        Route[BestRoute].ServT = Route[BestRoute].Dis / param.Speed + (Route[BestRoute].V.size() - 1) * param.ServiceTime;
         Route[BestRoute].V.insert(Route[BestRoute].V.begin() + BestPoint, Customer[BestCustomer]);
         //更新被操作的节点所属路径编号
         Customer[BestCustomer].R = BestRoute;
