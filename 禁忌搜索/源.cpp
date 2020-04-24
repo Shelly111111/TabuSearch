@@ -316,8 +316,8 @@ void Tabu_Search()
             }
         if (BestDelivery == 0)
         {
-            if (Iteration % 10 == 0)
-                cout << "Iteration: " << Iteration << ", BestV: " << BestV << ", Ans: " << Ans << endl;
+            //if (Iteration % 10 == 0)
+                //cout << "Iteration: " << Iteration << ", BestV: " << BestV << ", Ans: " << Ans << endl;
             continue;
         }
         //依据上述循环中挑选的结果，生成新的总体路径规划
@@ -354,8 +354,8 @@ void Tabu_Search()
             Copy_Route();
             Ans = BestV;
         }
-        if (Iteration % 10 == 0)
-            cout << "Iteration: " << Iteration << ", BestV: " << BestV << ", Ans: " << Ans << endl;
+        //if (Iteration % 10 == 0)
+            //cout << "Iteration: " << Iteration << ", BestV: " << BestV << ", Ans: " << Ans << endl;
     }
 }
 
@@ -378,11 +378,11 @@ int main()
     }
     //cout << "Initial path construction is Ok!" << endl;
     Tabu_Search();
-    //cout << "Tabu Search is Ok!" << endl;
+    cout << "Tabu Search is Ok!" << endl;
     //Output_by_json(Route_Ans);
     Output(Route_Ans);
-    if (!Check(Route))
-        cout << "111" << endl;
+    //if (!Check(Route))
+        //cout << "Error" << endl;
     Finish = clock();
     cout << "Total Running Time = " << ( Finish - Start ) / 1000.0 << endl;
     return 0;
