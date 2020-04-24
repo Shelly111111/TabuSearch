@@ -23,5 +23,21 @@
     <Text Include="Node.txt" />
     <Text Include="Edges.txt" />
     <Text Include="Vex.txt" />
+    <Text Include="map_json.txt" />
+    <Text Include="vehicle_json.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="jsoncpp.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="param.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="data.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Base64.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

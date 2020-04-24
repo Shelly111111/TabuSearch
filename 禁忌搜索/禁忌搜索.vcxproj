@@ -126,7 +126,7 @@
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
@@ -142,8 +142,18 @@
   </ItemGroup>
   <ItemGroup>
     <Text Include="Edges.txt" />
+    <Text Include="map_json.txt" />
     <Text Include="Node.txt" />
+    <Text Include="vehicle_json.txt" />
     <Text Include="Vex.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="jsoncpp.lib" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Base64.h" />
+    <ClInclude Include="data.h" />
+    <ClInclude Include="param.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
