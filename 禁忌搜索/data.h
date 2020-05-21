@@ -254,7 +254,6 @@ void Output(Route_Type R[])
         {
             M++;
             cout << "No." << M << " : " << "Use VehicleType " << R[i].VT << ", Load " << R[i].Load << ", Distance "
-                //<< R[i].Dis << ", ServeTime " << R[i].ServT << endl;
                 << R[i].Dis << endl;
             cout << "[";
             for (int j = 0; j < R[i].V.size() - 1; ++j)
@@ -269,10 +268,6 @@ void Output(Route_Type R[])
         for (int j = 1; j < R[i].V.size(); ++j)
             Check_Ans += Graph[R[i].V[j - 1].Number][R[i].V[j].Number];
     cout << "Check_Ans = " << Check_Ans << endl;
-    //cout << "Point that can't ship:[";
-    //for (int i = 0; i < Remainder.size(); i++)
-        //cout << Delivery[Remainder[i]].Number - 1 << ",";
-    //cout << "]" << endl;
     if (ChecklastVN >= lastVN)
         cerr << "Wornning:Some parameters currently entered may be too small for effective operation, please check the corresponding parameter settings." << endl;
     cout << "************************************************************" << endl;
@@ -332,5 +327,4 @@ void Output_by_json(Route_Type R[])
             out.replace(startpos, 1, ""); //实施替换，注意后面一定要用""引起来，表示字符串
     }
     cout << out << endl;
-    //cout << "************************************************************" << endl;
 }

@@ -16,7 +16,6 @@ int Vehicle_Number;   //由于无车辆数量限制，因此将上限设为顾客总数
 int Tabu[Delivery_Number + 10][Delivery_Number + 10];   //禁忌表用于禁忌节点插入操作
 int TabuCreate[Delivery_Number + 10];   //禁忌表用于禁忌拓展新路径或使用新车辆
 std::vector<int> Needs;//用于记录需要配送的结点
-//std::vector<int> Remainder;//用于记录剩余未配送结点
 double Ans;
 double Graph[Delivery_Number + 10][Delivery_Number + 10];
 int lastVN;
@@ -34,7 +33,6 @@ struct Param
     int Vehicle_type;   //车辆种类数目
     std::vector<Vehicle_Type> vehicle;
     double ServiceTime;     //单配送点服务时长
-    //double Max_ServiceTime;     //单程最大服务时长
     double Speed;       //车辆行驶速度
 }param;
 
@@ -51,7 +49,6 @@ struct Delivery_Type
 struct Route_Type
 {
     double Load;   //单条路径装载量
-    //double ServT;   //单条路径服务时长总和
     double Dis;   //单条路径总长度
     int VT;      //哪种车辆配送
     std::vector<Delivery_Type> V;   //单条路径上顾客节点序列
