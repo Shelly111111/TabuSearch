@@ -6,12 +6,13 @@
 
 #pragma once
 #include "param.h"
-//#include "Base64.h"
 #include <fstream>
 #include <stdlib.h>
 #include <iostream>
 #pragma comment(lib,"jsoncpp.lib")//windows
 #include <json/json.h>
+#include <iostream>
+//#include "Base64.h"
 //#include <unistd.h>
 using namespace std;
 
@@ -77,7 +78,7 @@ void Process_Date(int Delivery_num)
     //初始化每条路径，默认路径收尾为仓库，且首仓库最早最晚时间均为原仓库最早时间，尾仓库则均为原仓库最晚时间
     Delivery[1].R = -1;
     int Current_VT = 0, temp = 1;
-    for (int i = 1; i <= Vehicle_Number; ++i)
+    for (int i = 1; i <= Delivery_Number; ++i)
     {
         if (!Route[i].V.empty())
             Route[i].V.clear();
@@ -136,14 +137,61 @@ bool get_Date_in_txt(int& Delivery_num)
     return true;
 }
 
-/*
+bool get_Date_in_cmd(int& Delivery_num)
+{
+    Needs.clear();
+    string ss;
+    cin >> ss;
+    if (ss._Equal("param"))
+        cin >> param.Iter_Epoch >> param.ServiceTime >> param.Speed;
+    //读取配送点信息
+    cin >> Delivery_num;
+    Vehicle_Number = Delivery_num;
+    for (int i = 1; i <= Delivery_num + 1; ++i)
+    {
+        cin >> Delivery[i].Number >> Delivery[i].Demand;
+        Delivery[i].End = 480;
+        Delivery[i].SerBegin = Initial_Time - param.ServiceTime;
+        if (Delivery[i].Demand != 0.0)
+            Needs.push_back(i);
+    }
+    //读取车辆信息
+    cin >> param.Vehicle_type;
+    param.vehicle.resize(param.Vehicle_type);
+    for (int i = 0; i < param.Vehicle_type - 1; i++)
+        cin >> param.vehicle[i].MaxLoad >> param.vehicle[i].MaxMileage >> param.vehicle[i].Num;
+    cin >> param.vehicle[param.Vehicle_type - 1].MaxLoad >> param.vehicle[param.Vehicle_type - 1].MaxMileage >> lastVN;
+    param.vehicle[param.Vehicle_type - 1].Num = Delivery_Number + 10;
+
+    //读取地图信心
+    ifstream ifs;
+    ifs.open("Edges.txt", ios::in);
+    if (!ifs.is_open())
+    {
+        cerr << "Error:open file failed." << endl;
+        return false;
+    }
+    for (int i = 1; i <= Delivery_num + 1; ++i)
+        for (int j = 1; j <= Delivery_num + 1; ++j)
+        {
+            ifs >> Graph[i][j];
+            if (Graph[i][j] == 0.0)
+                Graph[i][j] = INF;
+        }
+    ifs.close();
+    Process_Date(Delivery_num);
+    return true;
+}
+
+
 //从json字符串中录入
-void get_Date_in_json(int& Delivery_num,int argc, char* argv[])
+void get_Date_in_json(int& Delivery_num)
 {
     string vehicle_json;
     string map_json;
     int ch;
     string json_base;
+    /*
     while ((ch = getopt(argc, argv, "e:T:t:s:v:g:")) != -1)
         {
             switch (ch)
@@ -175,6 +223,24 @@ void get_Date_in_json(int& Delivery_num,int argc, char* argv[])
                 break;
             }
     }
+    */
+    ifstream ifs;
+    ifs.open("vehicle_json.txt", ios::in);
+    if (!ifs.is_open())
+    {
+        cerr << "Error:open file failed." << endl;
+        return;
+    }
+    ifs>>vehicle_json;
+    ifs.close();
+    ifs.open("map_json.txt", ios::in);
+    if (!ifs.is_open())
+    {
+        cerr << "Error:open file failed." << endl;
+        return;
+    }
+    ifs >> map_json;
+    ifs.close();
     Json::Reader reader;
     Json::Value root;
     Json::Value vex_mapping;//顶点映射
@@ -236,7 +302,6 @@ void get_Date_in_json(int& Delivery_num,int argc, char* argv[])
                 Graph[i][j] = INF;
     Process_Date(Delivery_num);
 }
-*/
 
 
 
@@ -244,6 +309,7 @@ void get_Date_in_json(int& Delivery_num,int argc, char* argv[])
 //结果输出
 void Output(Route_Type R[])
 {
+    /*
     cout << "************************************************************" << endl;
     cout << "The Minimum Total Distance = " << Ans << endl;
     cout << "Concrete Schedule of Each Route as Following : " << endl;
@@ -271,6 +337,20 @@ void Output(Route_Type R[])
     if (ChecklastVN >= lastVN)
         cerr << "Wornning:Some parameters currently entered may be too small for effective operation, please check the corresponding parameter settings." << endl;
     cout << "************************************************************" << endl;
+    */
+    int ChecklastVN = 0;
+    for (int i = 1; i <= Vehicle_Number; ++i)
+        if (R[i].V.size() > 2)
+        {
+            cout << "data:" << R[i].VT << "," << R[i].Load << ","
+                << R[i].Dis;
+            cout << "-[";
+            for (int j = 0; j < R[i].V.size() - 1; ++j)
+                cout << R[i].V[j].Number - 1 << ", ";
+            cout << R[i].V[R[i].V.size() - 1].Number - 1 << "]" << endl;
+            if (R[i].VT == param.Vehicle_type - 1)
+                ChecklastVN++;
+        }
 }
 
 //结果输出为json

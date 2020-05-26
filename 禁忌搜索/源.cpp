@@ -95,8 +95,8 @@ bool Construction()
         //将当前服务过的节点赋值为最末节点值,路径+1,到达时间初始化
         if (Route[Current_Route].Load + Delivery[C].Demand > param.vehicle[Route[Current_Route].VT].MaxLoad)
             Current_Route++;
-        if (Current_Route >= Delivery_num)
-            return false;
+        //if (Vehicle_Number >= 2 * Delivery_num)
+            //return false;
         //找到当前路径中一个可插入的位置插入该点
         for (int i = 1; i < Route[Current_Route].V.size(); i++)
         {
@@ -133,11 +133,19 @@ bool Construction()
         //如果找不到可插入的节点，则插入到新路径中
         if (Delivery[C].R == 0)
         {
+            if (Route[Current_Route].Load == 0)
+                Vehicle_Number++;
             Current_Route++;
-            if (Current_Route >= Delivery_num)
+            double Differ_Dis = Graph[Route[Current_Route].V[0].Number][Delivery[C].Number] + Graph[Route[Current_Route].V[1].Number][Delivery[C].Number];
+            while (Differ_Dis > param.vehicle[Route[Current_Route].VT].MaxMileage || Delivery[C].Demand > param.vehicle[Route[Current_Route].VT].MaxLoad)
+            {
+                Current_Route++;
+                Vehicle_Number++;
+            }
+            if (Vehicle_Number >= 2 * Delivery_num)
                 return false;
             Route[Current_Route].Load += Delivery[C].Demand;
-            Route[Current_Route].Dis = Graph[Route[Current_Route].V[0].Number][Delivery[C].Number] + Graph[Route[Current_Route].V[1].Number][Delivery[C].Number];
+            Route[Current_Route].Dis = Differ_Dis;
             Delivery[C].R = Current_Route;
             Delivery[C].SerBegin = Graph[Route[Current_Route].V[0].Number][Delivery[C].Number] / param.Speed * 60.0;
             Route[Current_Route].V.insert(Route[Current_Route].V.begin() + 1, Delivery[C]);
@@ -148,6 +156,8 @@ bool Construction()
     for (int i = 1; i <= Vehicle_Number; ++i)
         D += Route[i].Dis;
     Ans = D;
+    //cout << "loss:0-" << Ans << endl;
+    return true;
 }
 
 //************************************************************
@@ -354,8 +364,8 @@ void Tabu_Search()
             Copy_Route();
             Ans = BestV;
         }
-        //if (Iteration % 10 == 0)
-            //cout << "Iteration: " << Iteration << ", BestV: " << BestV << ", Ans: " << Ans << endl;
+        if (Iteration % 10 == 0)
+            cout << "loss:" << Iteration << "-" << Ans << endl;
     }
 }
 
@@ -367,24 +377,26 @@ int main()
     srand((unsigned)time(NULL));
     Init_Param();
     //cout << "InitParam is Ok!" << endl;
-    if (!get_Date_in_txt(Delivery_num))
+    //if (!get_Date_in_txt(Delivery_num))
+        //return -1;
+    if (!get_Date_in_cmd(Delivery_num))
         return -1;
     //get_Date_in_json(Delivery_num);
     //cout << "Initialization is Ok!" << endl;
     if (!Construction())
     {
-        cerr << "{\"typeId\":1,\"data\":Error:Vehicle parameter setting is unreasonable, please check the parameters.}" << endl;
+        cerr << "{\"typeId\":1,\"data\":\"Error:Vehicle parameter setting is unreasonable, please check the parameters.\"}" << endl;
         return -1;
     }
     //cout << "Initial path construction is Ok!" << endl;
     Tabu_Search();
-    cout << "Tabu Search is Ok!" << endl;
+    //cout << "Tabu Search is Ok!" << endl;
     //Output_by_json(Route_Ans);
     Output(Route_Ans);
     //if (!Check(Route))
         //cout << "Error" << endl;
     Finish = clock();
-    cout << "Total Running Time = " << ( Finish - Start ) / 1000.0 << endl;
+    //cout << "Total Running Time = " << ( Finish - Start ) / 1000.0 << endl;
     return 0;
 }
 

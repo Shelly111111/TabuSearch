@@ -1,1 +1,1 @@
-[{"vehicleDistanceLimit":23.0,"vehicleLoad":2.0,"vehicleNum":2},{"vehicleDistanceLimit":26.0,"vehicleLoad":2.3,"vehicleNum":1},{"vehicleDistanceLimit":15.0,"vehicleLoad":3.0,"vehicleNum":2},{"vehicleDistanceLimit":20.0,"vehicleLoad":5.0,"vehicleNum":1}]
+[{"vehicleDistanceLimit":35.0,"vehicleLoad":2.0,"vehicleNum":3},{"vehicleDistanceLimit":35.0,"vehicleLoad":5.0,"vehicleNum":3}]
